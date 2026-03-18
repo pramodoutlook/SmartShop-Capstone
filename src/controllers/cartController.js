@@ -1,12 +1,49 @@
-const express = require("express");
-const controller = require("../controllers/cartController");
-const validators = require("../validators/cartValidators");
-const validateRequest = require("../middleware/validateRequest");
+const { cartService } = require("../services/serviceRegistry");
 
-const router = express.Router();
+function acceptsHtml(req) {
+	return (req.get("accept") || "").includes("text/html");
+}
 
-router.get("/cart", controller.getCart);
-router.post("/cart", validators.addToCart, validateRequest, controller.addToCart);
-router.delete("/cart/:id", validators.removeFromCart, validateRequest, controller.removeFromCart);
+exports.getCart = function (req, res, next) {
+	try {
+		return res.status(200).json(cartService.getCart());
+	} catch (error) {
+		return next(error);
+	}
+};
 
-module.exports = router;
+exports.addToCart = function (req, res, next) {
+	try {
+		const productId = req.body.productId;
+		const quantity = req.body.quantity;
+		const cart = cartService.addItem(productId, quantity);
+
+		if (acceptsHtml(req)) {
+			return res.redirect("/cart-view");
+		}
+
+		return res.status(201).json({
+			message: "Item added to cart",
+			cart: cart
+		});
+	} catch (error) {
+		return next(error);
+	}
+};
+
+exports.removeFromCart = function (req, res, next) {
+	try {
+		const cart = cartService.removeItem(req.params.id);
+
+		if (acceptsHtml(req)) {
+			return res.redirect("/cart-view");
+		}
+
+		return res.status(200).json({
+			message: "Item removed from cart",
+			cart: cart
+		});
+	} catch (error) {
+		return next(error);
+	}
+};

@@ -1,10 +1,52 @@
-const express = require("express");
-const controller = require("../controllers/pageController");
+const AppError = require("../errors/AppError");
+const { productService, cartService } = require("../services/serviceRegistry");
 
-const router = express.Router();
+exports.catalogPage = function (req, res, next) {
+	try {
+		const q = req.query.q || "";
+		const products = productService.listProducts(q);
+		const cart = cartService.getCart();
 
-router.get("/", controller.catalogPage);
-router.get("/details/:id", controller.productDetailsPage);
-router.get("/cart-view", controller.cartPage);
+		return res.render("catalog", {
+			title: "SmartShop Lite",
+			products: products,
+			q: q,
+			cartCount: cart.itemCount
+		});
+	} catch (error) {
+		return next(error);
+	}
+};
 
-module.exports = router;
+exports.productDetailsPage = function (req, res, next) {
+	try {
+		const product = productService.getProductById(req.params.id);
+		if (!product) {
+			throw new AppError(404, "Product not found");
+		}
+
+		const cart = cartService.getCart();
+
+		return res.render("product-details", {
+			title: product.name,
+			product: product,
+			cartCount: cart.itemCount
+		});
+	} catch (error) {
+		return next(error);
+	}
+};
+
+exports.cartPage = function (req, res, next) {
+	try {
+		const cart = cartService.getCart();
+
+		return res.render("cart", {
+			title: "Your Cart",
+			cart: cart,
+			cartCount: cart.itemCount
+		});
+	} catch (error) {
+		return next(error);
+	}
+};

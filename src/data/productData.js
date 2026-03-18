@@ -29,7 +29,7 @@ module.exports = [
     description: "Durable ceramic mug for hot and cold beverages.",
     category: "Home",
     price: 14.25,
-    imageUrl: "https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?w=800"
+    imageUrl: "/images/ceramic-coffee-mug.svg"
   },
   {
     id: "p-1005",
