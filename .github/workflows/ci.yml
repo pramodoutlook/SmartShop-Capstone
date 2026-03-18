@@ -1,16 +1,24 @@
-name: CI
-# Sample GitHub Actions workflow for building and testing a Node.js project.
+name: CI-CD
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  AZURE_RESOURCE_GROUP: gh-dev-accenture
+  AZURE_LOCATION: centralus
+  AZURE_TEMPLATE_FILE: infra/appservice.bicep
+  AZURE_SUBSCRIPTION_ID: 9756e2c4-9d1d-435e-868f-bf123dfa66d7
+  AZURE_WEBAPP_NAME: smartshop-ps26354
+  AZURE_APP_SERVICE_PLAN: smartshop-ps26354-plan
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  ci:
+    name: CI Build and Test
     runs-on: ubuntu-latest
     env:
       CI: true
@@ -54,6 +62,12 @@ jobs:
             --exclude='./artifacts' \
             -czf "artifacts/smartshop-lite-${{ github.sha }}-source.tar.gz" .
 
+          zip -r "artifacts/smartshop-lite-${{ github.sha }}.zip" . \
+            -x '.git/*' \
+            -x 'node_modules/*' \
+            -x 'artifacts/*' \
+            -x 'coverage/*'
+
           {
             echo "run_id=${{ github.run_id }}"
             echo "run_number=${{ github.run_number }}"
@@ -69,7 +83,92 @@ jobs:
           path: |
             artifacts/*.tgz
             artifacts/*.tar.gz
+            artifacts/*.zip
             artifacts/build-info.txt
             artifacts/coverage
           if-no-files-found: error
           retention-days: 14
+
+  cd:
+    name: CD Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: smartshop-lite-${{ github.sha }}
+          path: deployment-artifacts
+
+      - name: Resolve deployment package
+        id: package
+        run: |
+          PACKAGE_PATH="$(find deployment-artifacts -maxdepth 1 -type f -name '*.zip' | head -n 1)"
+
+          if [ -z "$PACKAGE_PATH" ]; then
+            echo "Deployment package zip not found in artifact output"
+            exit 1
+          fi
+
+          echo "package_path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Azure deployment configuration
+        run: |
+          REQUIRED_VARS=(AZURE_RESOURCE_GROUP AZURE_LOCATION AZURE_APP_SERVICE_PLAN AZURE_WEBAPP_NAME AZURE_TEMPLATE_FILE AZURE_SUBSCRIPTION_ID)
+
+          for var_name in "${REQUIRED_VARS[@]}"; do
+            if [ -z "${!var_name}" ]; then
+              echo "Missing required repository variable: $var_name"
+              exit 1
+            fi
+          done
+
+          if [ ! -f "$AZURE_TEMPLATE_FILE" ]; then
+            echo "Template file not found: $AZURE_TEMPLATE_FILE"
+            exit 1
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.Azure_Secret }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create or update resource group
+        run: |
+          az group create \
+            --name "$AZURE_RESOURCE_GROUP" \
+            --location "$AZURE_LOCATION"
+
+      - name: Deploy App Service infrastructure from Bicep
+        run: |
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file "$AZURE_TEMPLATE_FILE" \
+            --parameters \
+              location="$AZURE_LOCATION" \
+              appServicePlanName="$AZURE_APP_SERVICE_PLAN" \
+              webAppName="$AZURE_WEBAPP_NAME"
+
+      - name: Configure App Service settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
+            --settings \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+              NODE_ENV=production
+
+      - name: Deploy application package to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ steps.package.outputs.package_path }}
