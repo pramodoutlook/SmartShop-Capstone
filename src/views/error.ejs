@@ -1,0 +1,9 @@
+<%- include("partials/header", { title: "Error", cartCount: 0 }) %>
+
+<section>
+  <h1>Error <%= statusCode %></h1>
+  <p><%= message %></p>
+  <p><a class="btn ghost" href="/">Return to catalog</a></p>
+</section>
+
+<%- include("partials/footer") %>

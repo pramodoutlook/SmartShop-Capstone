@@ -1,0 +1,38 @@
+<%- include("partials/header", { title: title, cartCount: cartCount }) %>
+
+<section class="hero">
+  <h1>Find products you love</h1>
+  <p>Simple, fast, and ready to customize.</p>
+  <form class="search-form" method="GET" action="/">
+    <input type="text" name="q" placeholder="Search by name, description, or category" value="<%= q %>" />
+    <button type="submit">Search</button>
+  </form>
+</section>
+
+<section class="product-grid">
+  <% if (!products.length) { %>
+    <p class="empty">No products found for "<%= q %>".</p>
+  <% } %>
+
+  <% products.forEach(function(product) { %>
+    <article class="card">
+      <img src="<%= product.imageUrl %>" alt="<%= product.name %>" />
+      <div class="card-body">
+        <h2><%= product.name %></h2>
+        <p class="category"><%= product.category %></p>
+        <p><%= product.description %></p>
+        <p class="price">$<%= product.price.toFixed(2) %></p>
+        <div class="actions">
+          <a class="btn ghost" href="/details/<%= product.id %>">Details</a>
+          <form method="POST" action="/cart">
+            <input type="hidden" name="productId" value="<%= product.id %>" />
+            <input type="hidden" name="quantity" value="1" />
+            <button class="btn" type="submit">Add to Cart</button>
+          </form>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</section>
+
+<%- include("partials/footer") %>

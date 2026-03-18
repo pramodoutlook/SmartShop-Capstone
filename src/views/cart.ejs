@@ -1,0 +1,44 @@
+<%- include("partials/header", { title: title, cartCount: cartCount }) %>
+
+<section>
+  <h1>Your Cart</h1>
+
+  <% if (!cart.items.length) { %>
+    <p class="empty">Your cart is empty. <a href="/">Browse products</a>.</p>
+  <% } else { %>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Line Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% cart.items.forEach(function(item) { %>
+          <tr>
+            <td><%= item.name %></td>
+            <td><%= item.quantity %></td>
+            <td>$<%= item.price.toFixed(2) %></td>
+            <td>$<%= item.lineTotal.toFixed(2) %></td>
+            <td>
+              <button class="btn danger remove-btn" data-product-id="<%= item.productId %>">
+                Remove
+              </button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="cart-summary">
+      <p>Items: <strong><%= cart.itemCount %></strong></p>
+      <p>Subtotal: <strong>$<%= cart.subtotal.toFixed(2) %></strong></p>
+    </div>
+  <% } %>
+</section>
+
+<script src="/cart.js"></script>
+<%- include("partials/footer") %>
