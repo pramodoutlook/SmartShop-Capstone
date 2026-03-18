@@ -5,6 +5,9 @@ class CartService {
   constructor(productService) {
     this.productService = productService;
     this.items = new Map();
+    this.validCouponCode = "BUYFIRST26";
+    this.discountRate = 0.1;
+    this.taxRate = 0.12;
   }
 
   addItem(productId, quantity) {
@@ -44,7 +47,7 @@ class CartService {
     this.items.clear();
   }
 
-  getCart() {
+  getCart(couponCode) {
     const lines = Array.from(this.items.values()).map(function (item) {
       return {
         productId: item.product.id,
@@ -65,10 +68,26 @@ class CartService {
       return sum + item.quantity;
     }, 0);
 
+    const normalizedCouponCode = String(couponCode || "").trim().toUpperCase();
+    const couponApplied = normalizedCouponCode === this.validCouponCode;
+    const discountAmount = Number(
+      (couponApplied ? subtotal * this.discountRate : 0).toFixed(2)
+    );
+    const taxableAmount = Number((subtotal - discountAmount).toFixed(2));
+    const taxAmount = Number((taxableAmount * this.taxRate).toFixed(2));
+    const total = Number((taxableAmount + taxAmount).toFixed(2));
+
     return {
       items: lines,
       itemCount: itemCount,
-      subtotal: subtotal
+      subtotal: subtotal,
+      couponCode: normalizedCouponCode,
+      couponApplied: couponApplied,
+      discountRate: this.discountRate,
+      discountAmount: discountAmount,
+      taxRate: this.taxRate,
+      taxAmount: taxAmount,
+      total: total
     };
   }
 }

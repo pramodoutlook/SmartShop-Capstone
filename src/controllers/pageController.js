@@ -39,7 +39,8 @@ exports.productDetailsPage = function (req, res, next) {
 
 exports.cartPage = function (req, res, next) {
 	try {
-		const cart = cartService.getCart();
+		const coupon = req.query.coupon || "";
+		const cart = cartService.getCart(coupon);
 
 		return res.render("cart", {
 			title: "Your Cart",

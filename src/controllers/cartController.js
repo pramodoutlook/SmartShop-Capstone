@@ -6,7 +6,7 @@ function acceptsHtml(req) {
 
 exports.getCart = function (req, res, next) {
 	try {
-		return res.status(200).json(cartService.getCart());
+		return res.status(200).json(cartService.getCart(req.query.coupon));
 	} catch (error) {
 		return next(error);
 	}

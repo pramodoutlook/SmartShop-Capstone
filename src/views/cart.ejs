@@ -6,6 +6,15 @@
   <% if (!cart.items.length) { %>
     <p class="empty">Your cart is empty. <a href="/">Browse products</a>.</p>
   <% } else { %>
+    <% 
+      const couponCode = cart.couponCode || "";
+      const couponApplied = Boolean(cart.couponApplied);
+      const discountAmount = Number(cart.discountAmount || 0);
+      const fallbackTaxAmount = Number(((cart.subtotal - discountAmount) * 0.12).toFixed(2));
+      const taxAmount = Number(cart.taxAmount !== undefined ? cart.taxAmount : fallbackTaxAmount);
+      const fallbackTotal = Number((cart.subtotal - discountAmount + taxAmount).toFixed(2));
+      const total = Number(cart.total !== undefined ? cart.total : fallbackTotal);
+    %>
     <table class="cart-table">
       <thead>
         <tr>
@@ -36,6 +45,30 @@
     <div class="cart-summary">
       <p>Items: <strong><%= cart.itemCount %></strong></p>
       <p>Subtotal: <strong>$<%= cart.subtotal.toFixed(2) %></strong></p>
+
+      <form action="/cart-view" method="GET" class="coupon-form">
+        <label for="coupon">Coupon Code</label>
+        <input
+          id="coupon"
+          name="coupon"
+          type="text"
+          value="<%= couponCode %>"
+          placeholder="Enter coupon"
+        />
+        <button class="btn" type="submit">Apply Coupon</button>
+      </form>
+
+      <% if (couponCode && couponApplied) { %>
+        <p>Coupon applied: <strong><%= couponCode %></strong> (10% off)</p>
+      <% } %>
+
+      <% if (couponCode && !couponApplied) { %>
+        <p>Invalid coupon code. Enter <strong>BUYFIRST26</strong> to get 10% discount.</p>
+      <% } %>
+
+      <p>Discount: <strong>-$<%= discountAmount.toFixed(2) %></strong></p>
+      <p>Tax (12%): <strong>$<%= taxAmount.toFixed(2) %></strong></p>
+      <p>Final Bill: <strong>$<%= total.toFixed(2) %></strong></p>
     </div>
   <% } %>
 </section>

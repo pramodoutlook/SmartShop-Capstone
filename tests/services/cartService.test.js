@@ -56,4 +56,26 @@ describe("CartService", function () {
     const cart = cartService.getCart();
     expect(cart.subtotal).toBe(118.49);
   });
+
+  test("applies 10% coupon discount with 12% tax", function () {
+    cartService.addItem("p-1001", 1); // 89.99
+    cartService.addItem("p-1004", 2); // 28.50
+
+    const cart = cartService.getCart("BUYFIRST26");
+
+    expect(cart.couponApplied).toBe(true);
+    expect(cart.discountAmount).toBe(11.85);
+    expect(cart.taxAmount).toBe(12.8);
+    expect(cart.total).toBe(119.44);
+  });
+
+  test("does not apply discount for invalid coupon", function () {
+    cartService.addItem("p-1001", 1); // 89.99
+    const cart = cartService.getCart("WRONG");
+
+    expect(cart.couponApplied).toBe(false);
+    expect(cart.discountAmount).toBe(0);
+    expect(cart.taxAmount).toBe(10.8);
+    expect(cart.total).toBe(100.79);
+  });
 });
