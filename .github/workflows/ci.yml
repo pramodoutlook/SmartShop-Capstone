@@ -140,7 +140,6 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.Azure_Secret }}
-          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Create or update resource group
         run: |
