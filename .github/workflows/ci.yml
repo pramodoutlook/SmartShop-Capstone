@@ -9,6 +9,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      CI: true
 
     steps:
       - name: Checkout
@@ -28,3 +30,43 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Package application
+        if: always()
+        run: |
+          mkdir -p artifacts
+          if npm pack --pack-destination artifacts; then
+            echo "npm pack succeeded"
+          else
+            echo "npm pack failed; continuing with fallback bundle"
+          fi
+
+          if [ -d coverage ]; then
+            cp -R coverage artifacts/coverage
+          fi
+
+          tar \
+            --exclude='./.git' \
+            --exclude='./node_modules' \
+            --exclude='./artifacts' \
+            -czf "artifacts/smartshop-lite-${{ github.sha }}-source.tar.gz" .
+
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "run_number=${{ github.run_number }}"
+            echo "sha=${{ github.sha }}"
+            echo "ref=${{ github.ref }}"
+          } > artifacts/build-info.txt
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartshop-lite-${{ github.sha }}
+          path: |
+            artifacts/*.tgz
+            artifacts/*.tar.gz
+            artifacts/build-info.txt
+            artifacts/coverage
+          if-no-files-found: error
+          retention-days: 14
