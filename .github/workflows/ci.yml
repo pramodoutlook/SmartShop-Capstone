@@ -1,5 +1,5 @@
 name: CI
-
+# Sample GitHub Actions workflow for building and testing a Node.js project.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
